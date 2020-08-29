@@ -1,30 +1,68 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 
-void main() => runApp(MyApp());
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:animation_trigger_testing/trigger_observer.dart';
+
+import 'trigger/cubit/trigger_cubit.dart';
+
+void main() {
+  Bloc.observer = TriggerObserver();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: BlocProvider(
+        create: (context) => TriggerCubit(),
+        child: Gui(),
+      ),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({
+class Gui extends StatelessWidget {
+  const Gui({Key key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: BulletAnimation(),
+      floatingActionButton: BlocBuilder<TriggerCubit, Diff>(
+        builder: (context, state) {
+          return FloatingActionButton(
+            onPressed: () {
+              context.bloc<TriggerCubit>().fire(Diff(true, 0));
+            },
+            child: const Icon(
+              Icons.warning,
+              color: Colors.black,
+            ),
+            backgroundColor: Colors.amber,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class BulletAnimation extends StatefulWidget {
+  const BulletAnimation({
     Key key,
   }) : super(key: key);
 
   @override
-  _HomePageState createState() => _HomePageState();
+  _BulletAnimationState createState() => _BulletAnimationState();
 }
 
-class _HomePageState extends State<HomePage> {
-  static const int bulletTravel = 20;
-  static const int milliseconds = 100;
+class _BulletAnimationState extends State<BulletAnimation> {
+  static const int bulletTravel = 5;
+  static const int milliseconds = 60;
   List<int> bullets = List.generate(bulletTravel, (index) => -1);
   int header = 0;
 
@@ -64,55 +102,49 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          GridView.builder(
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: bulletTravel,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: bulletTravel),
-            itemBuilder: (context, index) {
-              return Container(
-                padding: EdgeInsets.all(2),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: Container(color: Colors.grey[900]),
-                ),
-              );
-            },
-          ),
-          GridView.builder(
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: bulletTravel,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: bulletTravel),
-            itemBuilder: (context, index) {
-              if (bullets.contains(index)) {
+    return BlocConsumer<TriggerCubit, Diff>(
+      listener: (context, state) {
+        if (state.trigger && state.index == 0) launchBullet();
+      },
+      builder: (context, state) {
+        return Stack(
+          children: [
+            GridView.builder(
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: bulletTravel,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: bulletTravel),
+              itemBuilder: (context, index) {
                 return Container(
                   padding: EdgeInsets.all(2),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(5),
-                    child: Container(color: Colors.red),
+                    child: Container(color: Colors.grey[900]),
                   ),
                 );
-              }
-              return Container();
-            },
-          ),
-          Align(
-            alignment: Alignment.center,
-            child: IconButton(
-              icon: Icon(
-                Icons.warning,
-                color: Colors.amber,
-              ),
-              onPressed: launchBullet,
+              },
             ),
-          ),
-        ],
-      ),
+            GridView.builder(
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: bulletTravel,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: bulletTravel),
+              itemBuilder: (context, index) {
+                if (bullets.contains(index)) {
+                  return Container(
+                    padding: EdgeInsets.all(2),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: Container(color: Colors.red),
+                    ),
+                  );
+                }
+                return Container();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
